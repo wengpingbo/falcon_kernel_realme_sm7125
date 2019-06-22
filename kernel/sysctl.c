@@ -160,6 +160,9 @@ unsigned int sysctl_ext4_fsync_enable = 1;
 unsigned int ext4_fsync_enable_status = 0;
 unsigned long sysctl_blkdev_issue_flush_count = 0;
 #endif /*CONFIG_OPLUS_FEATURE_PANIC_FLUSH*/
+#ifdef CONFIG_INCREASE_MAXIMUM_SWAPPINESS
+static int max_swappiness = 200;
+#endif
 #ifdef CONFIG_PRINTK
 static int ten_thousand = 10000;
 #endif
@@ -1621,10 +1624,14 @@ static struct ctl_table vm_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= &zero,
 #ifdef CONFIG_OPLUS_MM_HACKS
-		.extra2		= &two_hundred,
+		.extra2         = &two_hundred,
+#else
+#ifdef CONFIG_INCREASE_MAXIMUM_SWAPPINESS
+		.extra2         = &max_swappiness,
 #else
 		.extra2		= &one_hundred,
-#endif  /* CONFIG_OPLUS_MM_HACKS */
+#endif
+#endif /* CONFIG_OPLUS_MM_HACKS */
 	},
 #ifdef CONFIG_OPLUS_MM_HACKS
 	{
