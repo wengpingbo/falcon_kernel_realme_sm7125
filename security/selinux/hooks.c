@@ -98,6 +98,11 @@
 #include "audit.h"
 #include "avc_ss.h"
 
+#ifdef CONFIG_VBSWAP_HELPER
+#include "security.h"
+#include "avc_ss_reset.h"
+#endif /* CONFIG_VBSWAP_HELPER */
+
 struct selinux_state selinux_state;
 
 /* SECMARK reference count */
@@ -7011,7 +7016,6 @@ void selinux_complete_init(void)
 	iterate_supers(delayed_superblock_init, NULL);
 }
 
-
 #ifdef CONFIG_OPLUS_SECURE_GUARD
 int get_current_security_context(char **context, u32 *context_len)
 {
@@ -7019,6 +7023,24 @@ int get_current_security_context(char **context, u32 *context_len)
 	return security_sid_to_context(&selinux_state, sid, context, context_len);
 }
 #endif /* CONFIG_OPLUS_SECURE_GUARD */
+
+#ifdef CONFIG_VBSWAP_HELPER
+int get_enforce_value(void)
+{
+	return enforcing_enabled(&selinux_state);
+}
+
+void set_selinux(int value)
+{
+        enforcing_set(&selinux_state, value);
+        if (value)
+                avc_ss_reset(selinux_state.avc, 0);
+        selnl_notify_setenforce(value);
+        selinux_status_update_setenforce(&selinux_state, value);
+        if (!value)
+                call_lsm_notifier(LSM_POLICY_CHANGE, NULL);
+}
+#endif /* CONFIG_VBSWAP_HELPER */
 
 /* SELinux requires early initialization in order to label
    all processes and objects when they are created. */
