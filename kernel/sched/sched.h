@@ -406,14 +406,6 @@ struct task_group {
 #endif
 
 	struct cfs_bandwidth cfs_bandwidth;
-
-#ifdef CONFIG_UCLAMP_TASK_GROUP
-	/* The two decimal precision [%] value requested from user-space */
-	unsigned int		uclamp_pct[UCLAMP_CNT];
-	/* Clamp values requested for a task group */
-	struct uclamp_se	uclamp_req[UCLAMP_CNT];
-#endif
-
 };
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -815,12 +807,6 @@ struct rq {
 	unsigned long nr_load_updates;
 	u64 nr_switches;
 
-#ifdef CONFIG_UCLAMP_TASK
-	/* Utilization clamp values based on CPU's RUNNABLE tasks */
-	struct uclamp_rq	uclamp[UCLAMP_CNT] ____cacheline_aligned;
-	unsigned int		uclamp_flags;
-#define UCLAMP_FLAG_IDLE 0x01
-#endif
 	struct cfs_rq cfs;
 	struct rt_rq rt;
 	struct dl_rq dl;
@@ -2549,29 +2535,6 @@ static inline void cpufreq_update_util(struct rq *rq, unsigned int flags)
 #else
 static inline void cpufreq_update_util(struct rq *rq, unsigned int flags) {}
 #endif /* CONFIG_CPU_FREQ */
-
-#ifdef CONFIG_UCLAMP_TASK
-static inline unsigned int uclamp_util(struct rq *rq, unsigned int util)
-{
-	unsigned int min_util = READ_ONCE(rq->uclamp[UCLAMP_MIN].value);
-	unsigned int max_util = READ_ONCE(rq->uclamp[UCLAMP_MAX].value);
-
-	/*
-	 * Since CPU's {min,max}_util clamps are MAX aggregated considering
-	 * RUNNABLE tasks with _different_ clamps, we can end up with an
-	 * inversion. Fix it now when the clamps are applied.
-	 */
-	if (unlikely(min_util >= max_util))
-		return min_util;
-
-	return clamp(util, min_util, max_util);
-}
-#else /* CONFIG_UCLAMP_TASK */
-static inline unsigned int uclamp_util(struct rq *rq, unsigned int util)
-{
-	return util;
-}
-#endif /* CONFIG_UCLAMP_TASK */
 
 #ifdef CONFIG_SCHED_WALT
 
